@@ -44,7 +44,7 @@
     <script>
         async function generateTest() {
             const topic = document.getElementById('topicInput').value;
-            const url = 'http://127.0.0.1:5000/generate_test';  // Локальный сервер Flask
+            const proxyUrl = 'https://test-generator-backend-gcx8.onrender.com'; // Замените на URL вашего сервера
             
             if (!topic) {
                 alert('Пожалуйста, введите тему теста');
@@ -54,7 +54,7 @@
             try {
                 document.getElementById('testResult').innerHTML = 'Генерация теста...';
                 
-                const response = await fetch(url, {
+                const response = await fetch(proxyUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
