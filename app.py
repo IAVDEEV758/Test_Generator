@@ -11,7 +11,7 @@ CORS(app, resources={r"/*": {"origins": "*"}})
 
 # Данные для авторизации GigaChat
 CLIENT_ID = "c527527a-82e7-44eb-bc28-1ffad1a97c39"
-CLIENT_SECRET = os.getenv("CLIENT_SECRET")  # Используем переменную окружения
+CLIENT_SECRET = "YzUyNzUyN2EtODJlNy00NGViLWJjMjgtMWZmYWQxYTk3YzM5OjBjYWZkM2U1LTQ4ZTYtNDI3Yy04NWZkLTY0MTc5MTBiODY1NQ=="  # Используем переменную окружения
 SCOPE = "GIGACHAT_API_PERS"
 AUTH_URL = "https://ngw.devices.sberbank.ru:9443/api/v2/oauth"
 API_URL = "https://gigachat.devices.sberbank.ru/api/v1/chat/completions"
