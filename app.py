@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 import requests
 import json
+import os
 from flask_cors import CORS
 
 app = Flask(__name__)
@@ -8,7 +9,7 @@ CORS(app)  # Разрешаем CORS для взаимодействия с фр
 
 # Данные для авторизации GigaChat
 CLIENT_ID = "c527527a-82e7-44eb-bc28-1ffad1a97c39"
-CLIENT_SECRET = "YzUyNzUyN2EtODJlNy00NGViLWJjMjgtMWZmYWQxYTk3YzM5OjBjYWZkM2U1LTQ4ZTYtNDI3Yy04NWZkLTY0MTc5MTBiODY1NQ=="  # Замените на реальный секретный ключ из личного кабинета
+CLIENT_SECRET = os.getenv("CLIENT_SECRET")
 SCOPE = "GIGACHAT_API_PERS"
 AUTH_URL = "https://ngw.devices.sberbank.ru:9443/api/v2/oauth"
 API_URL = "https://gigachat.devices.sberbank.ru/api/v1/chat/completions"
