@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Генератор тестов</title>
-    <!-- Подключаем marked.js для обработки Markdown -->
-    <script src="https://cdn.jsdelivr.net/npm/marked@4.0.12/lib/marked.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -32,6 +30,11 @@
         #testResult {
             margin-top: 20px;
             white-space: pre-wrap;
+        }
+        /* Стиль для правильного ответа (со звездочкой) */
+        .correct-answer {
+            color: green;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -132,9 +135,11 @@
                     throw new Error(data.error);
                 }
 
-                // Преобразуем Markdown в HTML
-                const htmlResult = marked.parse(data.test);
-                document.getElementById('testResult').innerHTML = htmlResult;
+                // Обрабатываем текст теста, выделяя правильные ответы
+                let testText = data.test;
+                // Заменяем строки с * на HTML с классом для стилизации
+                testText = testText.replace(/^(.*?\*.*)$/gm, '<span class="correct-answer">$1</span>');
+                document.getElementById('testResult').innerHTML = testText;
             } catch (error) {
                 console.error('Ошибка:', error);
                 document.getElementById('testResult').innerHTML = 'Произошла ошибка при генерации теста: ' + error.message;

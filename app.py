@@ -87,11 +87,11 @@ def generate_test():
     if question_type == "open":
         question_format = "вопросы с открытым ответом (без вариантов ответа)"
     elif question_type == "2_options":
-        question_format = "вопросы с 2 вариантами ответа (A-B, правильный выделен **жирным**)"
+        question_format = "вопросы с 2 вариантами ответа (A-B, правильный помечен звездочкой *)"
     elif question_type == "3_options":
-        question_format = "вопросы с 3 вариантами ответа (A-C, правильный выделен **жирным**)"
+        question_format = "вопросы с 3 вариантами ответа (A-C, правильный помечен звездочкой *)"
     else:  # 4_options
-        question_format = "вопросы с 4 вариантами ответа (A-D, правильный выделен **жирным**)"
+        question_format = "вопросы с 4 вариантами ответа (A-D, правильный помечен звездочкой *)"
 
     # Формируем промпт
     prompt = f"""Создай тест по теме "{topic}" для уровня {difficulty_text}. 
