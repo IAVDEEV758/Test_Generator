@@ -1,13 +1,12 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, make_response
 import requests
 import os
 import json
 from flask_cors import CORS
 
 app = Flask(__name__)
-# Разрешаем запросы с любого домена (для теста), либо укажите конкретный домен GitHub Pages
-CORS(app, resources={r"/*": {"origins": "https://iavdeev758.github.io"}}) 
-
+# Разрешаем CORS для всех доменов (для теста)
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 
 app = Flask(__name__)
@@ -38,6 +37,15 @@ def get_access_token():
         return response.json()["access_token"]
     else:
         raise Exception("Ошибка получения токена")
+
+# Явная обработка OPTIONS
+@app.route('/generate_test', methods=['OPTIONS'])
+def handle_options():
+    response = make_response()
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+    return response, 200
 
 # Маршрут для генерации теста
 @app.route('/generate_test', methods=['POST'])
