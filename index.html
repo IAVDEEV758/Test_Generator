@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Генератор тестов</title>
+    <!-- Подключаем marked.js для обработки Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@4.0.12/lib/marked.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -16,7 +18,7 @@
             padding: 20px;
             border-radius: 10px;
         }
-        input, button {
+        input, select, button {
             padding: 10px;
             margin: 5px;
             border: 1px solid #ddd;
@@ -37,6 +39,55 @@
     <div class="container">
         <h1>Генератор тестов</h1>
         <input type="text" id="topicInput" placeholder="Введите тему теста">
+        
+        <!-- Выпадающее меню для сложности -->
+        <select id="difficultySelect">
+            <option value="1_class">1 класс</option>
+            <option value="2_class">2 класс</option>
+            <option value="3_class">3 класс</option>
+            <option value="4_class">4 класс</option>
+            <option value="5_class">5 класс</option>
+            <option value="6_class">6 класс</option>
+            <option value="7_class">7 класс</option>
+            <option value="8_class">8 класс</option>
+            <option value="9_class">9 класс</option>
+            <option value="10_class">10 класс</option>
+            <option value="11_class">11 класс</option>
+            <option value="student">Студент</option>
+        </select>
+
+        <!-- Выпадающее меню для типа вопросов -->
+        <select id="questionTypeSelect">
+            <option value="open">Ответ своими словами</option>
+            <option value="2_options">2 варианта ответа</option>
+            <option value="3_options">3 варианта ответа</option>
+            <option value="4_options">4 варианта ответа</option>
+        </select>
+
+        <!-- Выпадающее меню для количества вопросов -->
+        <select id="questionCountSelect">
+            <option value="1">1 вопрос</option>
+            <option value="2">2 вопроса</option>
+            <option value="3">3 вопроса</option>
+            <option value="4">4 вопроса</option>
+            <option value="5" selected>5 вопросов</option>
+            <option value="6">6 вопросов</option>
+            <option value="7">7 вопросов</option>
+            <option value="8">8 вопросов</option>
+            <option value="9">9 вопросов</option>
+            <option value="10">10 вопросов</option>
+            <option value="11">11 вопросов</option>
+            <option value="12">12 вопросов</option>
+            <option value="13">13 вопросов</option>
+            <option value="14">14 вопросов</option>
+            <option value="15">15 вопросов</option>
+            <option value="16">16 вопросов</option>
+            <option value="17">17 вопросов</option>
+            <option value="18">18 вопросов</option>
+            <option value="19">19 вопросов</option>
+            <option value="20">20 вопросов</option>
+        </select>
+
         <button onclick="generateTest()">Сгенерировать тест</button>
         <div id="testResult"></div>
     </div>
@@ -44,41 +95,51 @@
     <script>
         async function generateTest() {
             const topic = document.getElementById('topicInput').value;
-            const proxyUrl = 'https://test-generator-backend-gcx8.onrender.com/generate_test'; // Замените на URL вашего сервера
-            
+            const difficulty = document.getElementById('difficultySelect').value;
+            const questionType = document.getElementById('questionTypeSelect').value;
+            const questionCount = document.getElementById('questionCountSelect').value;
+            const proxyUrl = 'https://test-generator-backend-gcx8.onrender.com/generate_test';
+
             if (!topic) {
-        alert('Пожалуйста, введите тему теста');
-        return;
-    }
+                alert('Пожалуйста, введите тему теста');
+                return;
+            }
 
-    try {
-        document.getElementById('testResult').innerHTML = 'Генерация теста...';
+            try {
+                document.getElementById('testResult').innerHTML = 'Генерация теста...';
 
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 60000); // Тайм-аут 60 секунд
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 60000);
 
-        const response = await fetch(proxyUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ topic: topic }),
-            signal: controller.signal
-        });
+                const response = await fetch(proxyUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        topic: topic,
+                        difficulty: difficulty,
+                        questionType: questionType,
+                        questionCount: parseInt(questionCount)
+                    }),
+                    signal: controller.signal
+                });
 
-        clearTimeout(timeoutId);
+                clearTimeout(timeoutId);
 
-        const data = await response.json();
-        if (data.error) {
-            throw new Error(data.error);
+                const data = await response.json();
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                // Преобразуем Markdown в HTML
+                const htmlResult = marked.parse(data.test);
+                document.getElementById('testResult').innerHTML = htmlResult;
+            } catch (error) {
+                console.error('Ошибка:', error);
+                document.getElementById('testResult').innerHTML = 'Произошла ошибка при генерации теста: ' + error.message;
+            }
         }
-
-        document.getElementById('testResult').innerHTML = data.test;
-    } catch (error) {
-        console.error('Ошибка:', error);
-        document.getElementById('testResult').innerHTML = 'Произошла ошибка при генерации теста: ' + error.message;
-    }
-}
     </script>
 </body>
 </html>

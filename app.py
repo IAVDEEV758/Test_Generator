@@ -7,20 +7,20 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
-
 # Данные для авторизации GigaChat
 CLIENT_ID = "c527527a-82e7-44eb-bc28-1ffad1a97c39"
-CLIENT_SECRET = os.getenv("CLIENT_SECRET")  # Должен быть задан в переменной окружения
+CLIENT_SECRET = os.getenv("CLIENT_SECRET")
 SCOPE = "GIGACHAT_API_PERS"
 AUTH_URL = "https://ngw.devices.sberbank.ru:9443/api/v2/oauth"
 API_URL = "https://gigachat.devices.sberbank.ru/api/v1/chat/completions"
 
 # Проверяем, что CLIENT_SECRET установлен
 if not CLIENT_SECRET:
-    raise ValueError("CLIENT_SECRET не установлен в переменных окружения")
+    app.logger.error("CLIENT_SECRET не установлен в переменных окружения")
+    raise ValueError("CLIENT_SECRET не установлен")
 
-# Формируем ключ авторизации (исправлено: CLIENT_SECRET уже в Base64)
-auth_base64 = CLIENT_SECRET  # Убираем лишнее кодирование
+# Формируем ключ авторизации
+auth_base64 = CLIENT_SECRET
 
 def get_access_token():
     headers = {
@@ -34,10 +34,13 @@ def get_access_token():
         "grant_type": "client_credentials"
     }
     try:
+        app.logger.info("Отправка запроса на получение токена")
         response = requests.post(AUTH_URL, headers=headers, data=payload, verify=False)
         response.raise_for_status()
+        app.logger.info("Токен успешно получен")
         return response.json().get("access_token")
     except requests.exceptions.RequestException as e:
+        app.logger.error(f"Ошибка получения токена: {str(e)}")
         return None
 
 @app.route('/generate_test', methods=['POST', 'OPTIONS'])
@@ -51,18 +54,60 @@ def generate_test():
     
     data = request.get_json()
     topic = data.get('topic')
+    difficulty = data.get('difficulty')
+    question_type = data.get('questionType')
+    question_count = data.get('questionCount')
+
     if not topic:
+        app.logger.warning("Тема не указана в запросе")
         return jsonify({"error": "Тема не указана"}), 400
     
-    prompt = f"""Создай тест по теме "{topic}". 
+    if not difficulty or not question_type or not question_count:
+        app.logger.warning("Не указаны параметры теста (сложность, тип вопросов или количество)")
+        return jsonify({"error": "Не указаны параметры теста"}), 400
+
+    # Преобразуем сложность в читаемый формат
+    difficulty_map = {
+        "1_class": "1 класс",
+        "2_class": "2 класс",
+        "3_class": "3 класс",
+        "4_class": "4 класс",
+        "5_class": "5 класс",
+        "6_class": "6 класс",
+        "7_class": "7 класс",
+        "8_class": "8 класс",
+        "9_class": "9 класс",
+        "10_class": "10 класс",
+        "11_class": "11 класс",
+        "student": "студент"
+    }
+    difficulty_text = difficulty_map.get(difficulty, "средний уровень")
+
+    # Определяем формат вопросов
+    if question_type == "open":
+        question_format = "вопросы с открытым ответом (без вариантов ответа)"
+    elif question_type == "2_options":
+        question_format = "вопросы с 2 вариантами ответа (A-B, правильный выделен **жирным**)"
+    elif question_type == "3_options":
+        question_format = "вопросы с 3 вариантами ответа (A-C, правильный выделен **жирным**)"
+    else:  # 4_options
+        question_format = "вопросы с 4 вариантами ответа (A-D, правильный выделен **жирным**)"
+
+    # Формируем промпт
+    prompt = f"""Создай тест по теме "{topic}" для уровня {difficulty_text}. 
     Формат:
-    - в ответе должнен быть только тест без лишних слов
-    - 5 вопросов с 4 вариантами ответов
-    - Варианты: A-D, правильный **жирным**
+    - в ответе должен быть только тест без лишних слов
+    - {question_count} вопросов
+    - {question_format}
+    - каждый вопрос пронумерован
+    - после каждого вопроса пустая строка
     """
-    
+
+    app.logger.info(f"Сформированный промпт: {prompt}")
+
     access_token = get_access_token()
     if not access_token:
+        app.logger.error("Не удалось получить токен")
         return jsonify({"error": "Не удалось получить токен"}), 500
     
     headers = {
@@ -78,11 +123,14 @@ def generate_test():
     }
     
     try:
+        app.logger.info("Отправка запроса к GigaChat")
         response = requests.post(API_URL, headers=headers, json=payload, verify=False)
         response.raise_for_status()
         result = response.json().get("choices", [{}])[0].get("message", {}).get("content", "")
+        app.logger.info("Ответ от GigaChat успешно получен")
         return jsonify({"test": result})
     except requests.exceptions.RequestException as e:
+        app.logger.error(f"Ошибка запроса к GigaChat: {str(e)}")
         return jsonify({"error": f"Ошибка запроса: {str(e)}"}), 500
 
 if __name__ == '__main__':
