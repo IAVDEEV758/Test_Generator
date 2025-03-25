@@ -47,32 +47,38 @@
             const proxyUrl = 'https://test-generator-backend-gcx8.onrender.com'; // Замените на URL вашего сервера
             
             if (!topic) {
-                alert('Пожалуйста, введите тему теста');
-                return;
-            }
+        alert('Пожалуйста, введите тему теста');
+        return;
+    }
 
-            try {
-                document.getElementById('testResult').innerHTML = 'Генерация теста...';
-                
-                const response = await fetch(proxyUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ topic: topic })
-                });
+    try {
+        document.getElementById('testResult').innerHTML = 'Генерация теста...';
 
-                const data = await response.json();
-                if (data.error) {
-                    throw new Error(data.error);
-                }
-                
-                document.getElementById('testResult').innerHTML = data.test;
-            } catch (error) {
-                console.error('Ошибка:', error);
-                document.getElementById('testResult').innerHTML = 'Произошла ошибка при генерации теста: ' + error.message;
-            }
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000); // Тайм-аут 60 секунд
+
+        const response = await fetch(proxyUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ topic: topic }),
+            signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        const data = await response.json();
+        if (data.error) {
+            throw new Error(data.error);
         }
+
+        document.getElementById('testResult').innerHTML = data.test;
+    } catch (error) {
+        console.error('Ошибка:', error);
+        document.getElementById('testResult').innerHTML = 'Произошла ошибка при генерации теста: ' + error.message;
+    }
+}
     </script>
 </body>
 </html>

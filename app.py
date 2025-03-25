@@ -1,8 +1,14 @@
 from flask import Flask, request, jsonify
 import requests
-import json
 import os
+import json
 from flask_cors import CORS
+
+app = Flask(__name__)
+# Разрешаем запросы с любого домена (для теста), либо укажите конкретный домен GitHub Pages
+CORS(app, resources={r"/*": {"origins": "https://iavdeev758.github.io"}}) 
+
+
 
 app = Flask(__name__)
 CORS(app)  # Разрешаем CORS для взаимодействия с фронтендом
