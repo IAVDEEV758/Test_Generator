@@ -2,16 +2,15 @@ from flask import Flask, request, jsonify, make_response
 import requests
 import json
 import os
-import base64  # Для кодирования в Base64
+import base64
 from flask_cors import CORS
 
 app = Flask(__name__)
-# Разрешаем CORS для всех доменов (для теста)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 # Данные для авторизации GigaChat
 CLIENT_ID = "c527527a-82e7-44eb-bc28-1ffad1a97c39"
-CLIENT_SECRET = "YzUyNzUyN2EtODJlNy00NGViLWJjMjgtMWZmYWQxYTk3YzM5OjBjYWZkM2U1LTQ4ZTYtNDI3Yy04NWZkLTY0MTc5MTBiODY1NQ=="  # Используем переменную окружения
+CLIENT_SECRET = os.getenv("CLIENT_SECRET")
 SCOPE = "GIGACHAT_API_PERS"
 AUTH_URL = "https://ngw.devices.sberbank.ru:9443/api/v2/oauth"
 API_URL = "https://gigachat.devices.sberbank.ru/api/v1/chat/completions"
@@ -21,10 +20,15 @@ if not CLIENT_SECRET:
     app.logger.error("CLIENT_SECRET не установлен в переменных окружения")
     raise ValueError("CLIENT_SECRET не установлен")
 
+# Удаляем возможные пробелы и переносы строк
+CLIENT_ID = CLIENT_ID.strip()
+CLIENT_SECRET = CLIENT_SECRET.strip()
+
 # Формируем ключ авторизации в Base64
 auth_string = f"{CLIENT_ID}:{CLIENT_SECRET}"
+app.logger.info(f"Строка для кодирования: {auth_string}")
 auth_base64 = base64.b64encode(auth_string.encode()).decode()
-app.logger.info(f"Ключ авторизации в Base64: {auth_base64}")
+app.logger.info(f"Закодированный ключ в Base64: {auth_base64}")
 
 # Функция для получения токена авторизации
 def get_access_token():
@@ -32,7 +36,7 @@ def get_access_token():
         "Content-Type": "application/x-www-form-urlencoded",
         "Accept": "application/json",
         "RqUID": CLIENT_ID,
-        "Authorization": f"Basic {auth_base64}"  # Добавляем заголовок Authorization
+        "Authorization": f"Basic {auth_base64}"
     }
     payload = {
         "scope": SCOPE,
