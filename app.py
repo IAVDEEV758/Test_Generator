@@ -5,7 +5,8 @@ import base64
 from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}})
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+
 
 # Данные для авторизации GigaChat
 CLIENT_ID = "c527527a-82e7-44eb-bc28-1ffad1a97c39"
