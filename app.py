@@ -1,44 +1,57 @@
 from flask import Flask, request, jsonify, make_response
 import requests
-import os
 import json
+import os
+import base64  # Для кодирования в Base64
 from flask_cors import CORS
 
 app = Flask(__name__)
 # Разрешаем CORS для всех доменов (для теста)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
-
-app = Flask(__name__)
-CORS(app)  # Разрешаем CORS для взаимодействия с фронтендом
-
 # Данные для авторизации GigaChat
 CLIENT_ID = "c527527a-82e7-44eb-bc28-1ffad1a97c39"
-CLIENT_SECRET = "YzUyNzUyN2EtODJlNy00NGViLWJjMjgtMWZmYWQxYTk3YzM5OjBjYWZkM2U1LTQ4ZTYtNDI3Yy04NWZkLTY0MTc5MTBiODY1NQ=="
+CLIENT_SECRET = os.getenv("CLIENT_SECRET")  # Используем переменную окружения
 SCOPE = "GIGACHAT_API_PERS"
 AUTH_URL = "https://ngw.devices.sberbank.ru:9443/api/v2/oauth"
 API_URL = "https://gigachat.devices.sberbank.ru/api/v1/chat/completions"
+
+# Проверяем, что CLIENT_SECRET установлен
+if not CLIENT_SECRET:
+    app.logger.error("CLIENT_SECRET не установлен в переменных окружения")
+    raise ValueError("CLIENT_SECRET не установлен")
+
+# Формируем ключ авторизации в Base64
+auth_string = f"{CLIENT_ID}:{CLIENT_SECRET}"
+auth_base64 = base64.b64encode(auth_string.encode()).decode()
+app.logger.info(f"Ключ авторизации в Base64: {auth_base64}")
 
 # Функция для получения токена авторизации
 def get_access_token():
     headers = {
         "Content-Type": "application/x-www-form-urlencoded",
         "Accept": "application/json",
-        "RqUID": CLIENT_ID  # Уникальный идентификатор запроса
+        "RqUID": CLIENT_ID,
+        "Authorization": f"Basic {auth_base64}"  # Добавляем заголовок Authorization
     }
     payload = {
         "scope": SCOPE,
-        "grant_type": "client_credentials",
-        "client_id": CLIENT_ID,
-        "client_secret": CLIENT_SECRET
+        "grant_type": "client_credentials"
     }
-    response = requests.post(AUTH_URL, headers=headers, data=payload, verify=False)  # Отключаем проверку SSL для примера
-    if response.status_code == 200:
+    try:
+        app.logger.info("Отправка запроса на получение токена")
+        response = requests.post(AUTH_URL, headers=headers, data=payload, verify=False)
+        response.raise_for_status()
+        app.logger.info("Токен успешно получен")
         return response.json()["access_token"]
-    else:
-        raise Exception("Ошибка получения токена")
+    except requests.exceptions.RequestException as e:
+        error_message = f"Ошибка получения токена: {str(e)}"
+        if 'response' in locals():
+            error_message += f" | Статус-код: {response.status_code} | Ответ: {response.text}"
+        app.logger.error(error_message)
+        raise Exception(error_message)
 
-# Явная обработка OPTIONS
+# Обработка OPTIONS для CORS
 @app.route('/generate_test', methods=['OPTIONS'])
 def handle_options():
     response = make_response()
@@ -50,20 +63,26 @@ def handle_options():
 # Маршрут для генерации теста
 @app.route('/generate_test', methods=['POST'])
 def generate_test():
-    topic = request.json.get('topic')
-    if not topic:
-        return jsonify({"error": "Тема не указана"}), 400
-
-    prompt = f"""Создай тест по теме "{topic}". Если информация в кавычках не является темой теста, выведи ошибку.
-    Формат:
-    - 5 вопросов с 4 вариантами ответов каждый
-    - Каждый вопрос пронумерован
-    - Варианты ответов помечены буквами A-D
-    - Правильный ответ выделен жирным шрифтом (**жирный текст**)
-    - После каждого вопроса пустая строка"""
-
     try:
+        topic = request.json.get('topic')
+        if not topic:
+            app.logger.warning("Тема не указана в запросе")
+            return jsonify({"error": "Тема не указана"}), 400
+
+        app.logger.info(f"Получен запрос на тему: {topic}")
+
+        prompt = f"""Создай тест по теме "{topic}". Если информация в кавычках не является темой теста, выведи ошибку.
+        Формат:
+        - 5 вопросов с 4 вариантами ответов каждый
+        - Каждый вопрос пронумерован
+        - Варианты ответов помечены буквами A-D
+        - Правильный ответ выделен жирным шрифтом (**жирный текст**)
+        - После каждого вопроса пустая строка"""
+
+        app.logger.info("Получение токена от GigaChat")
         access_token = get_access_token()
+        app.logger.info("Токен успешно получен")
+
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {access_token}"
@@ -75,12 +94,21 @@ def generate_test():
             ],
             "temperature": 0.5
         }
+
+        app.logger.info("Отправка запроса к GigaChat")
         response = requests.post(API_URL, headers=headers, json=payload, verify=False)
         response.raise_for_status()
         result = response.json()["choices"][0]["message"]["content"]
+        app.logger.info("Ответ от GigaChat успешно получен")
+
         return jsonify({"test": result})
+
+    except requests.exceptions.RequestException as e:
+        app.logger.error(f"Ошибка при запросе к GigaChat: {str(e)}")
+        return jsonify({"error": f"Ошибка при запросе к GigaChat: {str(e)}"}), 500
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        app.logger.error(f"Общая ошибка: {str(e)}")
+        return jsonify({"error": f"Общая ошибка: {str(e)}"}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
