@@ -11,7 +11,7 @@ CORS(app, resources={r"/*": {"origins": "*"}})
 # Данные для авторизации GigaChat
 CLIENT_ID = "c527527a-82e7-44eb-bc28-1ffad1a97c39"
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
-SCOPE = "GIGACHAT_API_PERS"
+SCOPE = "GIGACHAT_API_PERS".strip()  # Убедимся, что нет лишних пробелов
 AUTH_URL = "https://ngw.devices.sberbank.ru:9443/api/v2/oauth"
 API_URL = "https://gigachat.devices.sberbank.ru/api/v1/chat/completions"
 
@@ -42,6 +42,8 @@ def get_access_token():
         "scope": SCOPE,
         "grant_type": "client_credentials"
     }
+    app.logger.info(f"Отправляемый scope: {SCOPE}")
+    app.logger.info(f"Полный payload: {payload}")
     try:
         app.logger.info("Отправка запроса на получение токена")
         response = requests.post(AUTH_URL, headers=headers, data=payload, verify=False)
