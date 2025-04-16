@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Генератор тестов</title>
-    <script src="https://unpkg.com/docx@8.5.0/build/index.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/7.8.2/docx.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <style>
         body {
@@ -185,6 +185,12 @@
         }
 
         function exportToWord() {
+            // Check if docx library is loaded
+            if (typeof docx === 'undefined') {
+                alert('Ошибка: библиотека для экспорта в Word не загружена. Попробуйте позже.');
+                return;
+            }
+
             const testResult = document.getElementById('testResult').innerHTML;
             if (!testResult || testResult === 'Генерация теста...' || testResult.includes('Произошла ошибка')) {
                 alert('Сначала сгенерируйте тест для экспорта!');
