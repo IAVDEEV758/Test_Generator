@@ -4,37 +4,71 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Генератор тестов</title>
+    <script src="https://unpkg.com/docx@8.5.0/build/index.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
+            margin: 0;
             padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f0f0f0;
         }
         .container {
             background-color: #f5f5f5;
             padding: 20px;
             border-radius: 10px;
+            width: 100%;
+            max-width: 800px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
         input, select, button {
             padding: 10px;
             margin: 5px;
             border: 1px solid #ddd;
             border-radius: 5px;
+            width: calc(100% - 22px);
+            box-sizing: border-box;
         }
         button {
             background-color: #4CAF50;
             color: white;
             cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #exportButton {
+            background-color: #2196F3;
+        }
+        #exportButton:hover {
+            background-color: #1976D2;
         }
         #testResult {
             margin-top: 20px;
             white-space: pre-wrap;
         }
-        /* Стиль для правильного ответа (со звездочкой) */
         .correct-answer {
             color: green;
             font-weight: bold;
+        }
+        .footer, .disclaimer {
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: #555;
+            text-align: center;
+            line-height: 1.5;
+            width: 100%;
+            max-width: 800px;
+        }
+        .disclaimer {
+            font-size: 0.8em;
+            color: #777;
+            font-style: italic;
         }
     </style>
 </head>
@@ -43,7 +77,6 @@
         <h1>Генератор тестов</h1>
         <input type="text" id="topicInput" placeholder="Введите тему теста">
         
-        <!-- Выпадающее меню для сложности -->
         <select id="difficultySelect">
             <option value="1_class">1 класс</option>
             <option value="2_class">2 класс</option>
@@ -59,7 +92,6 @@
             <option value="student">Студент</option>
         </select>
 
-        <!-- Выпадающее меню для типа вопросов -->
         <select id="questionTypeSelect">
             <option value="open">Ответ своими словами</option>
             <option value="2_options">2 варианта ответа</option>
@@ -67,7 +99,6 @@
             <option value="4_options">4 варианта ответа</option>
         </select>
 
-        <!-- Выпадающее меню для количества вопросов -->
         <select id="questionCountSelect">
             <option value="1">1 вопрос</option>
             <option value="2">2 вопроса</option>
@@ -92,7 +123,16 @@
         </select>
 
         <button onclick="generateTest()">Сгенерировать тест</button>
+        <button id="exportButton" onclick="exportToWord()">Экспортировать в Word</button>
         <div id="testResult"></div>
+        <div class="disclaimer">
+            Основано на нейросети GigaChat. Тест может содержать ошибки.
+        </div>
+    </div>
+    <div class="footer">
+        Сайт выполнен для квалификационного экзамена по МДК 02.01<br>
+        студентом Авдеевым И. А., 54 группа<br>
+        специальности 09.02.05 "Прикладная информатика (по отраслям)"
     </div>
 
     <script>
@@ -135,9 +175,7 @@
                     throw new Error(data.error);
                 }
 
-                // Обрабатываем текст теста, выделяя правильные ответы
                 let testText = data.test;
-                // Заменяем строки с * на HTML с классом для стилизации
                 testText = testText.replace(/^(.*?\*.*)$/gm, '<span class="correct-answer">$1</span>');
                 document.getElementById('testResult').innerHTML = testText;
             } catch (error) {
@@ -145,6 +183,85 @@
                 document.getElementById('testResult').innerHTML = 'Произошла ошибка при генерации теста: ' + error.message;
             }
         }
+
+        function exportToWord() {
+            const testResult = document.getElementById('testResult').innerHTML;
+            if (!testResult || testResult === 'Генерация теста...' || testResult.includes('Произошла ошибка')) {
+                alert('Сначала сгенерируйте тест для экспорта!');
+                return;
+            }
+
+            // Convert HTML to plain text, preserving asterisks for correct answers
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = testResult;
+            const spans = tempDiv.getElementsByClassName('correct-answer');
+            for (let span of spans) {
+                span.textContent = span.textContent.replace(/^(.*)$/gm, '*$1');
+            }
+            const plainText = tempDiv.textContent;
+
+            // Split text into lines and create paragraphs
+            const lines = plainText.split('\n').filter(line => line.trim() !== '');
+            const paragraphs = lines.map(line => {
+                return new docx.Paragraph({
+                    text: line,
+                    spacing: { after: 200 },
+                    style: line.startsWith('*') ? 'CorrectAnswer' : 'Normal'
+                });
+            });
+
+            // Create Word document
+            const doc = new docx.Document({
+                styles: {
+                    paragraphStyles: [
+                        {
+                            id: 'Normal',
+                            name: 'Normal',
+                            basedOn: 'Normal',
+                            next: 'Normal',
+                            quickFormat: true,
+                            run: {
+                                font: 'Arial',
+                                size: 24
+                            }
+                        },
+                        {
+                            id: 'CorrectAnswer',
+                            name: 'CorrectAnswer',
+                            basedOn: 'Normal',
+                            next: 'Normal',
+                            quickFormat: true,
+                            run: {
+                                font: 'Arial',
+                                size: 24,
+                                bold: true,
+                                color: '008000'
+                            }
+                        }
+                    ]
+                },
+                sections: [{
+                    properties: {},
+                    children: [
+                        new docx.Paragraph({
+                            text: 'Тест по теме: ' + document.getElementById('topicInput').value,
+                            heading: docx.HeadingLevel.HEADING_1,
+                            spacing: { after: 400 }
+                        }),
+                        ...paragraphs
+                    ]
+                }]
+            });
+
+            // Generate and download the Word file
+            docx.Packer.toBlob(doc).then(blob => {
+                saveAs(blob, 'Тест.docx');
+            }).catch(error => {
+                console.error('Ошибка при экспорте в Word:', error);
+                alert('Произошла ошибка при экспорте в Word.');
+            });
+        }
     </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9314a4c42d8bbd34',t:'MTc0NDgxNjU4NC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
 </body>
 </html>
