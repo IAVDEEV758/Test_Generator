@@ -85,20 +85,21 @@ def generate_test():
 
     # Определяем формат вопросов
     if question_type == "open":
-        question_format = "вопросы с открытым ответом (без вариантов ответа)"
+        question_format = "0"
     elif question_type == "2_options":
-        question_format = "вопросы с 2 вариантами ответа (правильный помечен звездочкой *)"
+        question_format = "2"
     elif question_type == "3_options":
-        question_format = "вопросы с 3 вариантами ответа (правильный помечен звездочкой *)"
+        question_format = "3"
     else:  # 4_options
-        question_format = "вопросы с 4 вариантами ответа (правильный помечен звездочкой *)"
+        question_format = "4"
 
     # Формируем промпт
     prompt = f"""Создай тест по теме "{topic}" для {difficulty_text}. 
     Формат:
     - в ответе должен быть только тест без лишних слов
-    - {question_count} вопросов
-    - {question_format}
+    - ТОЛЬКО {question_count} ВОПРОСОВ
+    - {question_format} ВАРИАНТОВ ОТВЕТА
+    - правильный помечен звездочкой *
     - каждый вопрос пронумерован
     - после каждого вопроса пустая строка
     """
